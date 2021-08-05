@@ -1,8 +1,8 @@
 import random
-
 import discord
-from discord import *
 from discord.ext import commands
+from replit import db
+from keep_alive import keep_alive
 
 bot = commands.Bot(command_prefix='.')
 items = {}
@@ -14,9 +14,12 @@ def generateListEmbed():
         colour=discord.Colour.blue()
     )
     field = ""
-    for key in items.keys():
-        field += f":white_small_square: {key} : {items[key]}\n"
-    em.add_field(name=field, value="\u200b", inline=True)
+    for key in db.keys():
+        #if (len(field > 1000)):
+        #    field2
+        field += f":white_small_square: {key} : {db[key]}\n"
+    em.add_field(name="\u200b", value=field, inline=True)
+    print(len(field))
     return em
 
 
@@ -81,30 +84,32 @@ async def _8ball(ctx, *, args):
 
 @bot.command()
 async def newItem(ctx, *, key):
-    if key not in items:
-        items.update({key: 0})
-        print(items)
+    if key not in db.keys():
+        db[key] = 0
+        #print(db)
         em = generateNewEmbed(key)
         await ctx.send(embed=em)
+    else:
+        await ctx.send("This item is already present on the list!")
 
 
 @bot.command(aliases=['removeitem'])
-async def removeItem(ctx, *, key):
-    if key not in items:
+async def removeItem(ctx, key):
+    if key not in db.keys():
         ctx.send("No such item is in the list.")
     else:
-        items.pop(key)
-        print(items)
+        del db[key]
+        print(db)
         em = generateRemoveEmbed(key)
         await ctx.send(embed=em)
 
 
 @bot.command(aliases=['quantity', 'edit'])
 async def editItemQuantity(ctx, key, addValue):
-    if items[key] + int(addValue) < 0:
-        await ctx.send(f"Thats impossible. You have {items[key]} of {key} and {items[key]} + {addValue} is less than 0")
+    if db[key] + int(addValue) < 0:
+        await ctx.send(f"Thats impossible. You have {db[key]} of {key} and {db[key]} + {addValue} is less than 0")
     else:
-        items[key] += int(addValue)
+        db[key] += int(addValue)
     em = generateListEmbed()
     await ctx.send(embed=em)
 
@@ -114,14 +119,14 @@ async def setQuantity(ctx, key, arg):
     if int(arg) < 0:
         await ctx.send(f"What is wrong with you? {arg} is a negative number :/")
     else:
-        items[key] = int(arg)
+        db[key] = int(arg)
     em = generateListEmbed()
     await ctx.send(embed=em)
 
 
 @bot.command(aliases=['+item', 'additem', '+1'])
-async def add1Item(ctx, *, key):
-    items[key] += 1
+async def add1Item(ctx, key):
+    db[key] += 1
     em = generateListEmbed()
     await ctx.send(embed=em)
 
@@ -131,8 +136,8 @@ async def displayEmbed(ctx):
     em = generateListEmbed()
     await ctx.send(embed=em)
     list = []
-    for key in items.keys():
-        if items[key] == 0:
+    for key in db.keys():
+        if db[key] == 0:
             list.append(key)
     if len(list) > 0:
         reply = "We have run out of: "
@@ -145,11 +150,11 @@ async def displayEmbed(ctx):
 
 
 @bot.command(aliases=['-item', '-1'])
-async def subtractItem(ctx, *, key):
-    if items[key] == 0:
+async def subtractItem(ctx, key):
+    if db[key] == 0:
         await ctx.send("You cant have less than 0 of some item :/")
     else:
-        items[key] -= 1
+        db[key] -= 1
     em = generateListEmbed()
     await ctx.send(embed=em)
 
@@ -174,7 +179,7 @@ async def _help_(ctx):
     em.add_field(name="__add1Item__ \n(alternatively __+item__)",
                  value="example: **.+item <item name>**"
                        "\nThis command increases the quantity of given item by 1", inline=False)
-    em.add_field(name="__subtractItem+_ \n(alternatively __-item__",
+    em.add_field(name="__subtractItem__ \n(alternatively __-item__)",
                  value="example: **.-item <item name>**"
                        "\nThis command decreases the quantity of given item by 1", inline=False)
     em.add_field(name="__show__",
@@ -187,5 +192,5 @@ async def _help_(ctx):
 # async def on_message(message):
 #    await message.reply(":white_small_square:")
 
-
+keep_alive()
 bot.run("ODcyMDYxMTgxMjMyMjk1OTM2.YQkYQw.5b-uEApz0buBjUvonqdKQ1_dFgA")
